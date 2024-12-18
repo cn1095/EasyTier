@@ -1,0 +1,239 @@
+name: 编译easytier
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: '请输入EasyTier源码仓库'
+        required: true
+        default: 'cn1095/EasyTier'
+      branch:
+        description: '请输入仓库的分支或版本号，默认main分支'
+        required: true
+        default: 'Location2'
+      upx:
+        description: '使用upx压缩二进制程序以最大化减少体积'
+        required: true
+        default: true
+        type: boolean
+
+env:
+  branch: "${{ github.event.inputs.branch }}"
+  repo: "${{ github.event.inputs.repo }}"
+  CARGO_TERM_COLOR: always
+  TZ: Asia/Shanghai
+  
+jobs:
+ build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - TARGET: aarch64-unknown-linux-musl
+            URL: aarch64-linux-musl
+            NAME: aarch64-linux-musl
+            
+          - TARGET: mips-unknown-linux-musl
+            URL: mips-linux-muslsf
+            NAME: mips-linux-muslsf
+            
+          - TARGET: mipsel-unknown-linux-musl
+            URL: mipsel-linux-muslsf
+            NAME: mipsel-linux-muslsf
+            
+          - TARGET: arm-unknown-linux-musleabi
+            URL: arm-linux-musleabi
+            NAME: arm-linux-musleabi
+            
+          - TARGET: arm-unknown-linux-musleabihf
+            URL: arm-linux-musleabihf
+            NAME: arm-linux-musleabihf
+            
+          - TARGET: armv7-unknown-linux-musleabi
+            URL: armv7m-linux-musleabi
+            NAME: armv7-linux-musleabi
+
+          - TARGET: armv7-unknown-linux-musleabihf
+            URL: armv7l-linux-musleabihf
+            NAME: armv7-linux-musleabihf
+            
+          - TARGET: i686-unknown-linux-musl
+            URL: i686-linux-musl
+            NAME: i686-linux-musl
+            
+          - TARGET: x86_64-unknown-linux-musl
+            URL: x86_64-linux-musl
+            NAME: x86_64-linux-musl
+            
+          - TARGET: x86_64-unknown-freebsd
+            NAME: x86_64-freebsd
+            
+    runs-on: ubuntu-22.04
+    env:
+      TARGET: ${{ matrix.TARGET }}
+      URL: ${{ matrix.URL }}
+      NAME: ${{ matrix.NAME }}
+    steps:
+      - name: 安装最新 Protoc
+        uses: arduino/setup-protoc@v3
+      - name: 下载编译工具
+        if: ${{ matrix.TARGET != 'x86_64-unknown-freebsd' }}
+        run: |
+          mkdir -p /opt/musl_gcc
+          rustup set auto-self-update disable
+          rustup install 1.77
+          rustup default 1.77
+          
+          wget -q -c https://musl.cc/${{ env.URL }}-cross.tgz -P /opt/musl_gcc/
+          tar zxf /opt/musl_gcc/${{ env.URL }}-cross.tgz -C /opt/musl_gcc/
+          sudo ln -s /opt/musl_gcc/${{ env.URL }}-cross/bin/*gcc /usr/bin/
+          sudo apt-get update && sudo apt-get install -qq crossbuild-essential-arm64 crossbuild-essential-armhf musl-tools libappindicator3-dev
+          if [[ $TARGET =~ ^mips.*$ ]]; then
+            cd /opt/musl_gcc/${{ env.URL }}-cross/lib/gcc/${{ env.URL }}/11.2.1 || exit 255
+            cp libgcc_eh.a libunwind.a
+            ar x libgcc.a _ctzsi2.o _clz.o _bswapsi2.o
+            ar rcs libctz.a _ctzsi2.o _clz.o _bswapsi2.o
+
+            rustup toolchain install nightly-x86_64-unknown-linux-gnu
+            rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+            # https://github.com/rust-lang/rust/issues/128808
+            # remove it after Cargo or rustc fix this.
+            RUST_LIB_SRC=$HOME/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/
+            if [[ -f $RUST_LIB_SRC/library/Cargo.lock && ! -f $RUST_LIB_SRC/Cargo.lock ]]; then 
+               cp -f $RUST_LIB_SRC/library/Cargo.lock $RUST_LIB_SRC/Cargo.lock
+            fi
+          else
+            rustup target add ${{ env.TARGET }}
+          fi
+
+          #添加交叉编译配置
+          cat >>~/.cargo/config <<EOF
+          [target.x86_64-unknown-linux-musl]
+          linker = "rust-lld"
+          rustflags = ["-C", "linker-flavor=ld.lld"]
+          
+          [target.i686-unknown-linux-musl]
+          linker = "i686-linux-musl-gcc"
+          rustflags = ["-C", "target-feature=+crt-static"] 
+          
+          [target.aarch64-unknown-linux-musl]
+          linker = "aarch64-linux-musl-gcc"
+          rustflags = ["-C", "target-feature=+crt-static"]
+          
+          [target.armv7-unknown-linux-musleabi]
+          linker = "armv7m-linux-musleabi-gcc"
+          rustflags = ["-C", "target-feature=+crt-static"]
+
+          [target.armv7-unknown-linux-musleabihf]
+          linker = "armv7l-linux-musleabihf-gcc"
+          rustflags = ["-C", "target-feature=+crt-static"]
+          
+          [target.arm-unknown-linux-musleabi]
+          linker = "arm-linux-musleabi-gcc"
+          rustflags = ["-C", "target-feature=+crt-static",
+          "-L", "/opt/musl_gcc/arm-linux-musleabi-cross/arm-linux-musleabi/lib",
+          "-L", "/opt/musl_gcc/arm-linux-musleabi-cross/lib/gcc/arm-linux-musleabi/11.2.1",
+          "-l", "atomic"]
+
+          [target.arm-unknown-linux-musleabihf]
+          linker = "arm-linux-musleabihf-gcc"
+          rustflags = ["-C", "target-feature=+crt-static",
+          "-L", "/opt/musl_gcc/arm-linux-musleabihf-cross/arm-linux-musleabihf/lib",
+          "-L", "/opt/musl_gcc/arm-linux-musleabihf-cross/lib/gcc/arm-linux-musleabihf/11.2.1",
+          "-l", "atomic"]
+          
+          [target.mipsel-unknown-linux-musl]
+          linker = "mipsel-linux-muslsf-gcc"
+          rustflags = ["-C", "target-feature=+crt-static",
+          "-L", "/opt/musl_gcc/mipsel-linux-muslsf-cross/mipsel-linux-muslsf/lib",
+          "-L", "/opt/musl_gcc/mipsel-linux-muslsf-cross/lib/gcc/mipsel-linux-muslsf/11.2.1",
+          "-l", "atomic",
+          "-l", "ctz"]
+          
+          [target.mips-unknown-linux-musl]
+          linker = "mips-linux-muslsf-gcc"
+          rustflags = ["-C", "target-feature=+crt-static",
+          "-L", "/opt/musl_gcc/mips-linux-muslsf-cross/mips-linux-muslsf/lib",
+          "-L", "/opt/musl_gcc/mips-linux-muslsf-cross/lib/gcc/mips-linux-muslsf/11.2.1",
+          "-l", "atomic",
+          "-l", "ctz"]      
+          EOF
+      - name: 安装 UPX
+        if: ${{ matrix.TARGET != 'x86_64-unknown-freebsd' }}
+        uses: crazy-max/ghaction-upx@v3
+        with:
+          version: latest
+          install-only: true
+      - name: 编译
+        if: ${{ matrix.TARGET != 'x86_64-unknown-freebsd' }}
+        run: |
+          git clone -b ${{ env.branch }} https://github.com/${{ env.repo }} /opt/et
+          cd /opt/et
+          #改成只使用中文帮助信息
+          sed -i 's/let locale = sys_locale::get_locale().unwrap_or_else(|| String::from("en-US"));/let locale = String::from("zh-CN");/' ./easytier/src/easytier-core.rs
+          if [[ $TARGET =~ ^mips.*$ ]]; then
+             cargo +nightly build -r --target ${{ env.TARGET }} -Z build-std=std,panic_abort --no-default-features --features mips --package=easytier
+          else
+             cargo build --release --target ${{ env.TARGET }}
+          fi
+          
+          /opt/musl_gcc/${{ env.URL }}-cross/bin/${{ env.URL }}-strip ./target/${{ env.TARGET }}/release/easytier-core
+          /opt/musl_gcc/${{ env.URL }}-cross/bin/${{ env.URL }}-strip ./target/${{ env.TARGET }}/release/easytier-cli
+         
+      - name: 编译FreeBSD
+        if: ${{ matrix.TARGET == 'x86_64-unknown-freebsd' }}
+        uses: cross-platform-actions/action@v0.23.0
+        with:
+          operating_system: freebsd
+          architecture: x86-64
+          version: '13.2'
+          shell: bash
+          memory: 5G
+          cpu_count: 4
+          run: |
+              sudo pkg install -y git protobuf
+              homedir=$(pwd)
+              sudo mkdir -p /opt
+              sudo chown -R $(whoami) /opt/
+              tagg=${{ env.BRANCHES }}
+              [[ -z $tagg ]] && tagg=main
+              curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+              source $HOME/.cargo/env
+              rustup set auto-self-update disable
+              rustup install 1.77
+              rustup default 1.77
+              git clone -b ${{ env.branch }} https://github.com/${{ env.repo }} /opt/et
+              cd /opt/et
+              #改成只使用中文帮助信息
+              sed -i '' 's/let locale = sys_locale::get_locale().unwrap_or_else(|| String::from("en-US"));/let locale = String::from("zh-CN");/' easytier/src/easytier-core.rs
+              export CC=clang
+              export CXX=clang++
+              export CARGO_TERM_COLOR=always
+              export RUSTFLAGS="-C opt-level=z -C target-cpu=native -C link-arg=-s"
+              cargo build --release --target x86_64-unknown-freebsd
+              ./target/${{ env.TARGET }}/release/easytier-core -h
+              mv -f target/${{ env.TARGET }}/release/easytier-core ${homedir}/easytier-core
+              mv -f target/${{ env.TARGET }}/release/easytier-cli ${homedir}/easytier-cli
+      - name: 压缩
+        if: ${{ matrix.TARGET != 'x86_64-unknown-freebsd' && github.event.inputs.upx != 'false' }}
+        run: |
+          upx --lzma --best /opt/et/target/${{ env.TARGET }}/release/easytier-core
+          upx --lzma --best /opt/et/target/${{ env.TARGET }}/release/easytier-cli
+      - name: 打包
+        run: |
+          if [[ $TARGET == 'x86_64-unknown-freebsd' ]]; then
+          mkdir -p /opt/et/target/${{ env.TARGET }}/release
+          mv -f ./easytier-core /opt/et/target/${{ env.TARGET }}/release/easytier-core
+          mv -f ./easytier-cli /opt/et/target/${{ env.TARGET }}/release/easytier-cli
+          mkdir -p /opt/bin
+          cd /opt/et/target/${{ env.TARGET }}/release
+          file easytier-core
+          tar -czvf easytier-${{ env.NAME }}.tar.gz easytier-core easytier-cli
+          cp -f ./easytier-core /opt/bin/easytier-core
+          cp -f ./easytier-cli /opt/bin/easytier-cli
+      - name: 上传
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: easytier-${{ env.NAME }}
+          path: /opt/bin/*
