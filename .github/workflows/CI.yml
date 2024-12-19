@@ -222,9 +222,10 @@ jobs:
       - name: 打包
         run: |
           if [[ ${{ env.TARGET }} == 'x86_64-unknown-freebsd' ]]; then
-          mkdir -p /opt/et/target/${{ env.TARGET }}/release
-          mv -f ./easytier-core /opt/et/target/${{ env.TARGET }}/release/easytier-core
-          mv -f ./easytier-cli /opt/et/target/${{ env.TARGET }}/release/easytier-cli
+            mkdir -p /opt/et/target/${{ env.TARGET }}/release
+            mv -f ./easytier-core /opt/et/target/${{ env.TARGET }}/release/easytier-core
+            mv -f ./easytier-cli /opt/et/target/${{ env.TARGET }}/release/easytier-cli
+          fi
           mkdir -p /opt/bin
           cd /opt/et/target/${{ env.TARGET }}/release
           file easytier-core
