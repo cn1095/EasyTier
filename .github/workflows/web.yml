@@ -1,0 +1,47 @@
+name: 打包WEB网页
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: '请输入EasyTier源码仓库'
+        required: true
+        default: 'EasyTier/EasyTier'
+      branch:
+        description: '请输入仓库的分支或版本号，默认main分支'
+        required: true
+        default: 'main'
+
+env:
+  branch: "${{ github.event.inputs.branch }}"
+  repo: "${{ github.event.inputs.repo }}"
+  CARGO_TERM_COLOR: always
+  TZ: Asia/Shanghai
+  
+jobs:
+ build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+         repository: ${{ github.event.inputs.repo }}
+         ref: ${{ github.event.inputs.branch }}
+      - name: 设置Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16' # 使用的 Node.js 版本，可调整
+      - name: 安装依赖
+        run: |
+          cd easytier-web/frontend
+          npm install
+      - name: 构建 HTML
+        run: |
+          cd easytier-web/frontend
+          npm run build
+      - name: 上传
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: easytier-web-html
+          path: ./easytier-web/frontend/dist/*
