@@ -27,22 +27,23 @@ jobs:
         with:
          repository: ${{ github.event.inputs.repo }}
          ref: ${{ github.event.inputs.branch }}
+         
       - name: 设置Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '21' # 使用的 Node.js 版本，可调整
+          
       - name: 安装pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 9
           run_install: false
-      - name: 安装依赖
+          
+      - name: 构建 HTML
         run: |
           pnpm -r install
           pnpm -r build
-      - name: 构建 HTML
-        run: |
-          find ./ -name *.html
+          
       - name: 上传
         uses: actions/upload-artifact@v4
         if: always()
