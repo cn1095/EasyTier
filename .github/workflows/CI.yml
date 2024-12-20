@@ -179,7 +179,7 @@ jobs:
           
           /opt/musl_gcc/${{ env.URL }}-cross/bin/${{ env.URL }}-strip ./target/${{ env.TARGET }}/release/easytier-core
           /opt/musl_gcc/${{ env.URL }}-cross/bin/${{ env.URL }}-strip ./target/${{ env.TARGET }}/release/easytier-cli
-          [ -f "./target/${{ env.TARGET }}/release/easytier-web" ] && /opt/musl_gcc/${{ env.URL }}-cross/bin/${{ env.URL }}-strip ./target/${{ env.TARGET }}/release/easytier-web
+          /opt/musl_gcc/${{ env.URL }}-cross/bin/${{ env.URL }}-strip ./target/${{ env.TARGET }}/release/easytier-web
       - name: 编译FreeBSD
         if: ${{ matrix.TARGET == 'x86_64-unknown-freebsd' }}
         uses: cross-platform-actions/action@v0.23.0
@@ -214,28 +214,28 @@ jobs:
               ./target/${{ env.TARGET }}/release/easytier-core -h
               mv -f target/${{ env.TARGET }}/release/easytier-core ${homedir}/easytier-core
               mv -f target/${{ env.TARGET }}/release/easytier-cli ${homedir}/easytier-cli
-              [ -f "target/${{ env.TARGET }}/release/easytier-web" ] && mv -f target/${{ env.TARGET }}/release/easytier-web ${homedir}/easytier-web
+              mv -f target/${{ env.TARGET }}/release/easytier-web ${homedir}/easytier-web
       - name: 压缩
         if: ${{ matrix.TARGET != 'x86_64-unknown-freebsd' && github.event.inputs.upx != 'false' }}
         run: |
           upx --lzma --best /opt/et/target/${{ env.TARGET }}/release/easytier-core
           upx --lzma --best /opt/et/target/${{ env.TARGET }}/release/easytier-cli
-          [ -f "/opt/et/target/${{ env.TARGET }}/release/easytier-web" ] && upx --lzma --best /opt/et/target/${{ env.TARGET }}/release/easytier-cli
+          upx --lzma --best /opt/et/target/${{ env.TARGET }}/release/easytier-web
       - name: 打包
         run: |
           if [[ ${{ env.TARGET }} == 'x86_64-unknown-freebsd' ]]; then
             mkdir -p /opt/et/target/${{ env.TARGET }}/release
             mv -f ./easytier-core /opt/et/target/${{ env.TARGET }}/release/easytier-core
             mv -f ./easytier-cli /opt/et/target/${{ env.TARGET }}/release/easytier-cli
-            [ -f "./easytier-web" ] && /opt/et/target/${{ env.TARGET }}/release/easytier-web
+            mv -f ./easytier-web /opt/et/target/${{ env.TARGET }}/release/easytier-web
           fi
           mkdir -p /opt/bin
           cd /opt/et/target/${{ env.TARGET }}/release
           file easytier-core
-          [ -f "./easytier-web" ] && wt_web="easytier-web" && cp -f ./easytier-web /opt/bin/easytier-web
-          tar -czvf easytier-${{ env.NAME }}.tar.gz easytier-core easytier-cli $wt_web
+          tar -czvf easytier-${{ env.NAME }}.tar.gz easytier-core easytier-cli easytier-web
           cp -f ./easytier-core /opt/bin/easytier-core
           cp -f ./easytier-cli /opt/bin/easytier-cli
+          cp -f ./easytier-web /opt/bin/easytier-web
       - name: 上传
         uses: actions/upload-artifact@v4
         if: always()
