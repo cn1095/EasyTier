@@ -28,17 +28,21 @@ jobs:
          repository: ${{ github.event.inputs.repo }}
          ref: ${{ github.event.inputs.branch }}
       - name: 设置Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18' # 使用的 Node.js 版本，可调整
+          node-version: '21' # 使用的 Node.js 版本，可调整
+      - name: 安装pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+          run_install: false
       - name: 安装依赖
         run: |
-          cd easytier-web/frontend
-          npm install --legacy-peer-deps
+          pnpm -r install
+          pnpm -r build
       - name: 构建 HTML
         run: |
-          cd easytier-web/frontend
-          npm run build
+          find ./ -name *.html
       - name: 上传
         uses: actions/upload-artifact@v4
         if: always()
