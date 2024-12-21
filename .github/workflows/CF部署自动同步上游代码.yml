@@ -4,8 +4,8 @@ permissions:
   contents: write
 
 on:
-  schedule:
-    - cron: "0 21 * * *" # 每天凌晨5点执行一次（北京时区+8）
+  #schedule:
+    #- cron: "0 21 * * *" # 每天凌晨5点执行一次（北京时区+8）
   workflow_dispatch:
 
 jobs:
