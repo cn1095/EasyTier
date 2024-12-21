@@ -1,0 +1,39 @@
+name: 同步上游代码
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: "0 21 * * *" # 每天凌晨5点执行一次（北京时区+8）
+  workflow_dispatch:
+
+jobs:
+  sync_latest_from_upstream:
+    name: 同步上游仓库最新提交
+    runs-on: ubuntu-latest
+    if: ${{ github.event.repository.fork }}
+
+    steps:
+      # 第一步：检出当前目标仓库
+      - name: 检出目标仓库
+        uses: actions/checkout@v4
+
+      # 第二步：运行同步操作
+      - name: 同步上游更改
+        id: sync
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+        with:
+          upstream_sync_repo: EasyTier/EasyTier # 上游仓库名称
+          upstream_sync_branch: main # 上游分支
+          target_sync_branch: main # 目标分支
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }} # 自动生成，无需手动设置
+
+          # 将 test_mode 设置为 true 可用于测试，而非实际同步操作
+          test_mode: false
+
+      - name: 同步检查
+        if: failure()
+        run: |
+          echo "[错误] 由于上游仓库的 .github/workflows 里的文件发生变更，GitHub 自动暂停了本次自动更新，你需要手动同步更新一次才能激活同步流程"
+          exit 1
