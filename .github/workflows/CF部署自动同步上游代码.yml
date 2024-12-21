@@ -37,3 +37,9 @@ jobs:
         run: |
           echo "[错误] 由于上游仓库的 .github/workflows 里的文件发生变更，GitHub 自动暂停了本次自动更新，你需要手动同步更新一次才能激活同步流程"
           exit 1
+
+      - name: 删除工作流
+        uses: GitRML/delete-workflow-runs@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          retain_days: 3 # 保留最近3天的工作流运行记录
