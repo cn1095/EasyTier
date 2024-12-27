@@ -171,7 +171,9 @@ jobs:
           cd /opt/et
           #改成只使用中文帮助信息
           sed -i 's/let locale = sys_locale::get_locale().unwrap_or_else(|| String::from("en-US"));/let locale = String::from("zh-CN");/' ./easytier/src/easytier-core.rs
-          sed -i 's/pub const EASYTIER_VERSION: &str = git_version::git_version!(.*$/pub const EASYTIER_VERSION: &str = env!(/' ./easytier/src/common/constants.rs
+          sed -i 's/rust_i18n::i18n!("locales", fallback = "en");/rust_i18n::i18n!("locales", fallback = "zh-CN");/' ./easytier/src/easytier-core.rs
+          sed -i 's/rust_i18n::i18n!("locales", fallback = "en");/rust_i18n::i18n!("locales", fallback = "zh-CN");/' ./easytier/src/easytier-cli.rs
+          sed -i 's/git_version::git_version/env/' ./easytier/src/common/constants.rs
           sed -i '/args = \["--abbrev=8", "--always", "--dirty=~"\],/d' ./easytier/src/common/constants.rs
           sed -i '/prefix = concat!(env!("CARGO_PKG_VERSION"), "-"),/d' ./easytier/src/common/constants.rs
           sed -i '/suffix = "",/d' ./easytier/src/common/constants.rs
@@ -211,11 +213,13 @@ jobs:
               cd /opt/et
               #改成只使用中文帮助信息
               sed -i '' 's/let locale = sys_locale::get_locale().unwrap_or_else(|| String::from("en-US"));/let locale = String::from("zh-CN");/' easytier/src/easytier-core.rs
-              sed -i 's/pub const EASYTIER_VERSION: &str = git_version::git_version!(.*$/pub const EASYTIER_VERSION: &str = env!(/' ./easytier/src/common/constants.rs
-              sed -i '/args = \["--abbrev=8", "--always", "--dirty=~"\],/d' ./easytier/src/common/constants.rs
-              sed -i '/prefix = concat!(env!("CARGO_PKG_VERSION"), "-"),/d' ./easytier/src/common/constants.rs
-              sed -i '/suffix = "",/d' ./easytier/src/common/constants.rs
-              sed -i 's/fallback = env!("CARGO_PKG_VERSION")/"CARGO_PKG_VERSION"/' ./easytier/src/common/constants.rs
+              sed -i '' 's/rust_i18n::i18n!("locales", fallback = "en");/rust_i18n::i18n!("locales", fallback = "zh-CN");/' ./easytier/src/easytier-core.rs
+              sed -i '' 's/rust_i18n::i18n!("locales", fallback = "en");/rust_i18n::i18n!("locales", fallback = "zh-CN");/' ./easytier/src/easytier-cli.rs
+              sed -i '' 's/git_version::git_version/env/' ./easytier/src/common/constants.rs
+              sed -i '' '/args = \["--abbrev=8", "--always", "--dirty=~"\],/d' ./easytier/src/common/constants.rs
+              sed -i '' '/prefix = concat!(env!("CARGO_PKG_VERSION"), "-"),/d' ./easytier/src/common/constants.rs
+              sed -i '' '/suffix = "",/d' ./easytier/src/common/constants.rs
+              sed -i '' 's/fallback = env!("CARGO_PKG_VERSION")/"CARGO_PKG_VERSION"/' ./easytier/src/common/constants.rs
               export CC=clang
               export CXX=clang++
               export CARGO_TERM_COLOR=always
