@@ -396,9 +396,9 @@ impl ManualConnectorManager {
         println!("开始重连，dead_url: {}", dead_url);
 
         let mut newdead_url = dead_url.clone();
-        // 检查 dead_url 是否为 http 协议
+        // 检查 dead_url 后缀是否为 /
     if let Ok(parsed_url) = Url::parse(&dead_url) {
-        if parsed_url.port() == Some(80) {
+        if dead_url.ends_with('/') {
             if let Some(resolved_url) = Self::fetch_redirect_url(&dead_url).await {
                 println!("最终重定向地址: {}", resolved_url);
                 newdead_url = resolved_url;
