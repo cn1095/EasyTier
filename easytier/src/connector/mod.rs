@@ -254,7 +254,7 @@ pub async fn create_connector_by_url(
                 },
                 _ => {
                     // 默认情况，处理未知类型
-                    println!("{}: 未知类型的服务器地址：{}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), query_type);
+                    println!("{}: 未知类型的服务器地址：{} 请在重定向地址后面加 ?type=协议类型 （目前仅支持tcp udp ws wss）", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), query_type);
                     Err(Error::InvalidUrl(url.into()))
                 },
             }
@@ -301,7 +301,7 @@ pub async fn create_connector_by_url(
                 .map(|q| q.to_string())  // 如果有查询字符串，返回其字符串形式
                 .unwrap_or_else(|| "type=tcp".to_string());  // 如果没有查询字符串，使用默认值
             let parsed_url = Url::parse(&format!("http://localhost?{}", query)).map_err(|e| Error::InvalidUrl(format!("解析 query 字段失败: {}", e)))?;
-            let query_type = parsed_url.query_pairs().find(|(key, _)| key == "type").map(|(_, value)| value.to_string()).unwrap_or_else(|| "unknown".to_string()).replace('/', "");
+            let query_type = parsed_url.query_pairs().find(|(key, _)| key == "type").map(|(_, value)| value.to_string()).unwrap_or_else(|| "unknown".to_string()).replace('/', "").to_lowercase();
 
             Ok((host, port, query_type))
         } else {
