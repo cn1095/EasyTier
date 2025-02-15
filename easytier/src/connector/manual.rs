@@ -354,7 +354,7 @@ impl ManualConnectorManager {
                     // 处理 Location 地址，去掉协议头和端口号
                     if let Ok(mut parsed_url) = Url::parse(&location_str) {
                         parsed_url.set_scheme("").ok(); // 去掉协议头
-                        //parsed_url.set_port(None).ok(); // 去掉端口
+                        parsed_url.set_port(None).ok(); // 去掉端口
                         url = parsed_url.to_string().trim_start_matches("//").to_string();
                     } else {
                         println!("解析 Location 地址失败，跳过！");
@@ -399,7 +399,7 @@ impl ManualConnectorManager {
         // 检查 dead_url 是否为 80 端口
     if let Ok(parsed_url) = Url::parse(&dead_url) {
         if parsed_url.port() == Some(80) {
-            if let Some(resolved_url) = fetch_redirect_url(&dead_url).await {
+            if let Some(resolved_url) = Self::fetch_redirect_url(&dead_url).await {
                 println!("最终重定向地址: {}", resolved_url);
                 newdead_url = resolved_url;
             }
