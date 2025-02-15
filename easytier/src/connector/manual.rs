@@ -307,9 +307,13 @@ impl ManualConnectorManager {
         )
         .await;
     }
+     // **尝试转换 dead_url 为 Url，如果失败就用 String**
+    let remote_url = Url::parse(&dead_url).unwrap_or_else(|_| {
+        println!("地址解析失败，无法转换为 Url，继续使用原始字符串");
+    });
     println!("实际连接的服务器: {}", dead_url);
 
-    data.global_ctx.issue_event(GlobalCtxEvent::Connecting(dead_url.clone()));
+    data.global_ctx.issue_event(GlobalCtxEvent::Connecting(remote_url.clone()));
     println!("连接事件已发送: {}", dead_url);
 
     let _g = net_ns.guard();
