@@ -298,6 +298,7 @@ impl ManualConnectorManager {
         let net_ns = data.net_ns.clone();
 
         connector.lock().await.set_ip_version(ip_version);
+        println!("🔍 连接前的 IP 版本: {:?}", connector.lock().await.get_ip_version());
 
         if data.global_ctx.config.get_flags().bind_device {
             set_bind_addr_for_peer_connector(
@@ -308,11 +309,14 @@ impl ManualConnectorManager {
             .await;
         }
 
+        connector.lock().await.set_remote_url(newdead_url.clone());
+        println!("🔍 实际连接的 remote_url: {}", connector.lock().await.remote_url());
         data.global_ctx.issue_event(GlobalCtxEvent::Connecting(
             connector.lock().await.remote_url().clone(),
         ));
 
         let _g = net_ns.guard();
+        tracing::info!("🚀 开始连接: {:?}", connector);
         tracing::info!("reconnect try connect... conn: {:?}", connector);
         let tunnel = connector.lock().await.connect().await?;
         tracing::info!("reconnect get tunnel succ: {:?}", tunnel);
