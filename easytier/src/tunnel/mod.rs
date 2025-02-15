@@ -205,7 +205,7 @@ impl FromUrl for SocketAddr {
     fn from_url(url: url::Url, ip_version: IpVersion) -> Result<Self, TunnelError> {
         // 只要 URL 没有端口，就默认设置为 80
         if url.port().is_none() {
-            url.set_port(Some(80)).map_err(|_| TunnelError::InvalidUrl)?;
+            url.set_port(Some(80)).ok(); 
         }
         let addrs = url.socket_addrs(|| None)?;
         tracing::debug!(?addrs, ?ip_version, ?url, "convert url to socket addrs");
