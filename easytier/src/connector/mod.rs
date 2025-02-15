@@ -161,7 +161,7 @@ pub async fn create_connector_by_url(
             }
             return Ok(Box::new(connector));
         }
-        "http" => {
+        "http" | "https" => {
             // 获取重定向后的 IP 与端口
             let (ip, port, query_type) = get_redirected_url(url.as_str()).await?;
             // 组装新的 TCP URL
