@@ -307,13 +307,7 @@ impl ManualConnectorManager {
         )
         .await;
     }
-     let remote_url = match Url::parse(&dead_url) {
-    Ok(url) => url,
-    Err(err) => {
-        println!("地址解析失败: {}，继续使用原始字符串: {}", err, dead_url);
-        return; // 直接返回，避免影响后续逻辑
-        }
-    };
+    let remote_url = Url::parse(&dead_url).ok();
     println!("实际连接的服务器: {}", dead_url);
 
     data.global_ctx.issue_event(GlobalCtxEvent::Connecting(remote_url.clone()));
