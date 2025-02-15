@@ -516,7 +516,7 @@ impl ManualConnectorManager {
                 .map(|q| q.to_string())  // 如果有查询字符串，返回其字符串形式
                 .unwrap_or_else(|| "type=tcp".to_string());  // 如果没有查询字符串，使用默认值
             let parsed_url = Url::parse(&format!("http://localhost?{}", query)).map_err(|e| Error::InvalidUrl(format!("解析 query 字段失败: {}", e)))?;
-            let query_type = parsed_url.query_pairs().find(|(key, _)| key == "type").map(|(_, value)| value.to_string()).unwrap_or_else(|| "unknown".to_string()).replace('/', "");
+            let query_type = parsed_url.query_pairs().find(|(key, _)| key == "type").map(|(_, value)| value.to_string()).unwrap_or_else(|| "unknown".to_string()).replace('/', "").to_lowercase();
             Ok((host, port, query_type))
         } else {
             Err(Error::InvalidUrl("未找到重定向地址".to_string()))
