@@ -1,5 +1,7 @@
 use std::{collections::BTreeSet, sync::Arc};
 use reqwest::Client;
+use reqwest::Url;
+use std::time::Duration;
 use anyhow::Context;
 use dashmap::{DashMap, DashSet};
 use tokio::{
