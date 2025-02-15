@@ -1,5 +1,5 @@
 use std::{collections::BTreeSet, sync::Arc};
-
+use reqwest::Client;
 use anyhow::Context;
 use dashmap::{DashMap, DashSet};
 use tokio::{
@@ -329,6 +329,62 @@ impl ManualConnectorManager {
         })
     }
 
+    async fn fetch_redirect_url(original_url: &str) -> Option<String> {
+    let client = Client::builder()
+        .redirect(reqwest::redirect::Policy::none()) // 禁止自动重定向
+        .timeout(Duration::from_secs(5)) // 超时 5 秒
+        .build()
+        .ok()?; // 忽略构建失败的情况
+
+    let mut url = original_url.to_string();
+    let mut redirect_count = 0;
+
+    while redirect_count < 3 {
+        println!("请求地址: {}", url);
+        
+        let response = timeout(Duration::from_secs(5), client.get(&url).send()).await;
+        match response {
+            Ok(Ok(resp)) => {
+                if let Some(location) = resp.headers().get(reqwest::header::LOCATION) {
+                    let location_str = location.to_str().unwrap_or("").to_string();
+                    println!("重定向地址: {}", location_str);
+
+                    // 处理 Location 地址，去掉协议头和端口号
+                    if let Ok(mut parsed_url) = Url::parse(&location_str) {
+                        parsed_url.set_scheme("").ok(); // 去掉协议头
+                        //parsed_url.set_port(None).ok(); // 去掉端口
+                        url = parsed_url.to_string().trim_start_matches("//").to_string();
+                    } else {
+                        println!("解析 Location 地址失败，跳过！");
+                        break;
+                    }
+                } else {
+                    println!("未发现重定向地址，停止！");
+                    break;
+                }
+            }
+            Ok(Err(e)) => {
+                println!("HTTP 请求失败: {}，跳过！", e);
+                break;
+            }
+            Err(_) => {
+                println!("超时 5 秒，跳过！");
+                break;
+            }
+        }
+
+        redirect_count += 1;
+    }
+
+    if redirect_count >= 3 {
+        println!("错误：重定向地址过多！");
+        return None;
+    }
+
+    // 过滤 http:// 和 https://
+    Some(url.replacen("http://", "", 1).replacen("https://", "", 1))
+}
+    
     async fn conn_reconnect(
         data: Arc<ConnectorManagerData>,
         dead_url: String,
@@ -337,9 +393,21 @@ impl ManualConnectorManager {
         tracing::info!("reconnect: {}", dead_url);
         println!("开始重连，dead_url: {}", dead_url);
 
+        let mut newdead_url = dead_url.clone();
+        // 检查 dead_url 是否为 80 端口
+    if let Ok(parsed_url) = Url::parse(&dead_url) {
+        if parsed_url.port() == Some(80) {
+            if let Some(resolved_url) = fetch_redirect_url(&dead_url).await {
+                println!("最终重定向地址: {}", resolved_url);
+                newdead_url = resolved_url;
+            }
+        }
+    }
+
+    println!("最终使用的 newdead_url: {}", newdead_url);
         let mut ip_versions = vec![];
-        let u = url::Url::parse(&dead_url)
-            .with_context(|| format!("failed to parse connector url {:?}", dead_url))?;
+        let u = url::Url::parse(&newdead_url)
+            .with_context(|| format!("failed to parse connector url {:?}", newdead_url))?;
         println!("解析出的 URL: {:?}", u);
         if u.scheme() == "ring" {
             ip_versions.push(IpVersion::Both);
@@ -377,14 +445,14 @@ impl ManualConnectorManager {
                 std::time::Duration::from_secs(1),
                 Self::conn_reconnect_with_ip_version(
                     data.clone(),
-                    dead_url.clone(),
+                    newdead_url.clone(),
                     connector.clone(),
                     ip_version,
                 ),
             )
             .await;
             println!("重连结果: {:?}", ret);
-            tracing::info!("reconnect: {} done, ret: {:?}", dead_url, ret);
+            tracing::info!("reconnect: {} done, ret: {:?}", newdead_url, ret);
 
             if ret.is_ok() && ret.as_ref().unwrap().is_ok() {
                 reconn_ret = ret.unwrap();
@@ -399,7 +467,7 @@ impl ManualConnectorManager {
                     println!("重连失败: {:?}", reconn_ret);
                 }
                 data.global_ctx.issue_event(GlobalCtxEvent::ConnectError(
-                    dead_url.clone(),
+                    newdead_url.clone(),
                     format!("{:?}", ip_version),
                     format!("{:?}", reconn_ret),
                 ));
