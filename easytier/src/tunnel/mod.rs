@@ -203,11 +203,12 @@ where
 
 impl FromUrl for SocketAddr {
     fn from_url(url: url::Url, ip_version: IpVersion) -> Result<Self, TunnelError> {
-        // 只要 URL 没有端口，就默认设置为 80
-        if url.port().is_none() {
-            url.set_port(Some(80)).ok(); 
-        }
-        let addrs = url.socket_addrs(|| None)?;
+        let addrs = if url.port().is_none() {
+            tracing::warn!(?url, "URL 没有端口，使用默认地址 0.0.0.0:80");
+            vec![SocketAddr::from(([0, 0, 0, 0], 80))] // 默认返回 0.0.0.0:80
+        } else {
+            url.socket_addrs(|| None)?
+        };
         tracing::debug!(?addrs, ?ip_version, ?url, "convert url to socket addrs");
         let addrs = addrs
             .into_iter()
