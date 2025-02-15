@@ -297,9 +297,12 @@ impl ManualConnectorManager {
     let ip_collector = data.global_ctx.get_ip_collector();
     let net_ns = data.net_ns.clone();
 
+    println!("🔄 [conn_reconnect_with_ip_version] 开始执行，dead_url: {}, ip_version: {:?}", dead_url, ip_version);
     connector.lock().await.set_ip_version(ip_version);
+    println!("✅ IP 版本已设置为: {:?}", ip_version);
 
     if data.global_ctx.config.get_flags().bind_device {
+        println!("🎯 绑定设备模式开启，正在设置绑定地址...");
         set_bind_addr_for_peer_connector(
             connector.lock().await.as_mut(),
             ip_version == IpVersion::V4,
@@ -309,34 +312,39 @@ impl ManualConnectorManager {
     }
 
     let remote_url = connector.lock().await.remote_url().clone();
-    tracing::info!("🔍 实际连接的 remote_url: {}", remote_url);
+    println!("🔍 实际连接的 remote_url: {}", remote_url);
+
+    if remote_url.is_empty() {
+        println!("⚠️ remote_url 为空，可能导致连接失败！");
+    }
 
     data.global_ctx.issue_event(GlobalCtxEvent::Connecting(remote_url.clone()));
+    println!("📡 连接事件已发送: {}", remote_url);
 
     let _g = net_ns.guard();
-    tracing::info!("reconnect try connect... conn: {:?}", connector);
+    println!("🚀 尝试连接... conn: {:?}", connector);
     let tunnel = connector.lock().await.connect().await?;
-    tracing::info!("reconnect get tunnel succ: {:?}", tunnel);
+    println!("✅ 连接成功，获得 tunnel: {:?}", tunnel);
 
     // 获取实际远程地址
     if let Some(tunnel_info) = tunnel.info() {
         if let Some(remote_addr) = tunnel_info.remote_addr {
             let actual_remote_url = remote_addr.to_string();
             if dead_url != actual_remote_url {
-                tracing::warn!(
-                    "⚠️ 服务器地址改变，原始连接地址: {}, 实际远程地址: {}",
-                    dead_url, actual_remote_url
-                );
+                 println!(
+                            "⚠️ 服务器地址改变，原始连接地址: {}, 实际远程地址: {}",
+                            dead_url, actual_remote_url
+                        );
             }
         } else {
-            tracing::warn!("⚠️ 无法获取 tunnel 的 remote_addr");
+            println!("⚠️ 无法获取 tunnel 的 remote_addr");
         }
     } else {
-        tracing::warn!("⚠️ 无法获取 tunnel 的信息");
+        println!("⚠️ 无法获取 tunnel 的信息");
     }
 
     let (peer_id, conn_id) = data.peer_manager.add_client_tunnel(tunnel).await?;
-    tracing::info!("✅ reconnect succ: {} {} {}", peer_id, conn_id, dead_url);
+    println!("✅ 连接成功: peer_id = {}, conn_id = {}, dead_url = {}", peer_id, conn_id, dead_url);
     
     Ok(ReconnResult {
         dead_url,
