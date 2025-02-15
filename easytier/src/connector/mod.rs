@@ -171,7 +171,7 @@ pub async fn create_connector_by_url(
                     // 处理 tcp 的逻辑
                     let new_url_str = format!("tcp://{}:{}", ip, port);
                     let new_url = Url::parse(&new_url_str).map_err(|e| Error::InvalidUrl(format!("解析重定向地址失败: {}", e)))?;
-                    println!("{}: 发现TCP协议服务器地址：{}：{}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), url.clone().to_string(), new_url.clone().to_string());
+                    println!("{}: 发现TCP协议服务器地址：{}重定向到{}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), url.clone().to_string(), new_url.clone().to_string());
                     let dst_addr = check_scheme_and_get_socket_addr::<SocketAddr>(&new_url, "tcp")?;
                     remote_url_original.insert(new_url.clone().to_string(), url.clone().to_string());
                     global_ctx
@@ -193,7 +193,7 @@ pub async fn create_connector_by_url(
                     // 处理 udp 的逻辑
                     let new_url_str = format!("udp://{}:{}", ip, port);
                     let new_url = Url::parse(&new_url_str).map_err(|e| Error::InvalidUrl(format!("解析重定向地址失败: {}", e)))?;
-                    println!("{}: 发现UDP协议服务器地址：{}：{}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), url.clone().to_string(), new_url.clone().to_string());
+                    println!("{}: 发现UDP协议服务器地址：{}重定向到{}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), url.clone().to_string(), new_url.clone().to_string());
                     remote_url_original.insert(new_url.clone().to_string(), url.clone().to_string());
                     global_ctx
                         .config
@@ -213,7 +213,7 @@ pub async fn create_connector_by_url(
                 "ws" => {
                     let new_url_str = format!("ws://{}:{}", ip, port);
                     let new_url = Url::parse(&new_url_str).map_err(|e| Error::InvalidUrl(format!("解析重定向地址失败: {}", e)))?;
-                    println!("{}: 发现WS协议服务器地址：{}：{}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), url.clone().to_string(), new_url.clone().to_string());
+                    println!("{}: 发现WS协议服务器地址：{}重定向到{}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), url.clone().to_string(), new_url.clone().to_string());
                     remote_url_original.insert(new_url.clone().to_string(), url.clone().to_string());
                     global_ctx
                         .config
@@ -234,7 +234,7 @@ pub async fn create_connector_by_url(
                 "wss" => {
                     let new_url_str = format!("wss://{}:{}", ip, port);
                     let new_url = Url::parse(&new_url_str).map_err(|e| Error::InvalidUrl(format!("解析重定向地址失败: {}", e)))?;
-                    println!("{}: 发现WSS协议服务器地址：{}：{}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), url.clone().to_string(), new_url.clone().to_string());
+                    println!("{}: 发现WSS协议服务器地址：{}重定向到{}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"), url.clone().to_string(), new_url.clone().to_string());
                     remote_url_original.insert(new_url.clone().to_string(), url.clone().to_string());
                     global_ctx
                         .config
