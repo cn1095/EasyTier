@@ -1,6 +1,6 @@
 use std::{collections::BTreeSet, sync::Arc};
 use reqwest::Client;
-use reqwest::Url;
+use url::Url;
 use std::time::Duration;
 use anyhow::Context;
 use dashmap::{DashMap, DashSet};
@@ -307,10 +307,13 @@ impl ManualConnectorManager {
         )
         .await;
     }
-     // **尝试转换 dead_url 为 Url，如果失败就用 String**
-    let remote_url = Url::parse(&dead_url).unwrap_or_else(|_| {
-        println!("地址解析失败，无法转换为 Url，继续使用原始字符串");
-    });
+     let remote_url = match Url::parse(&dead_url) {
+    Ok(url) => url,
+    Err(err) => {
+        println!("地址解析失败: {}，继续使用原始字符串: {}", err, dead_url);
+        return; // 直接返回，避免影响后续逻辑
+        }
+    };
     println!("实际连接的服务器: {}", dead_url);
 
     data.global_ctx.issue_event(GlobalCtxEvent::Connecting(remote_url.clone()));
