@@ -433,11 +433,13 @@ impl ManualConnectorManager {
                 if addr.is_ipv4() {
                     if !has_ipv4 {
                         ip_versions.insert(0, IpVersion::V4);
+                        println!("{}: 服务器ipv4地址: {}",chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),addr);
                     }
                     has_ipv4 = true;
                 } else if addr.is_ipv6() {
                     if !has_ipv6 {
                         ip_versions.push(IpVersion::V6);
+                        println!("{}: 服务器ipv6地址: {}",chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),addr);
                     }
                     has_ipv6 = true;
                 }
