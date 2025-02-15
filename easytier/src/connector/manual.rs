@@ -311,14 +311,14 @@ impl ManualConnectorManager {
 let remote_url = match Url::parse(&dead_url) {
     Ok(url) => url, 
     Err(_) => {
-        println!("⚠️ dead_url 无法转换为 Url: {}", dead_url);
+        println!("dead_url 无法转换为 Url: {}", dead_url);
         return Err(Error::AnyhowError(anyhow::anyhow!("Invalid URL: {}", dead_url)));
     }
 };
 
-println!("🔍 实际连接的服务器: {}", remote_url);
+println!("实际连接的服务器: {}", remote_url);
 data.global_ctx.issue_event(GlobalCtxEvent::Connecting(remote_url.clone()));
-println!("📡 连接事件已发送: {}", remote_url);
+println!("连接事件已发送: {}", remote_url);
 
 
     let _g = net_ns.guard();
