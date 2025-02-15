@@ -307,7 +307,6 @@ impl ManualConnectorManager {
         )
         .await;
     }
-   use url::Url;
 
 let remote_url = match Url::parse(&dead_url) {
     Ok(url) => url, 
@@ -318,7 +317,7 @@ let remote_url = match Url::parse(&dead_url) {
 };
 
 println!("🔍 实际连接的服务器: {}", remote_url);
-
+connector.lock().await.set_remote_url(remote_url.clone());
 data.global_ctx.issue_event(GlobalCtxEvent::Connecting(remote_url.clone()));
 println!("📡 连接事件已发送: {}", remote_url);
 
