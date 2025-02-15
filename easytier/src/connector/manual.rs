@@ -359,15 +359,15 @@ impl ManualConnectorManager {
                 if let Some(location) = resp.headers().get(reqwest::header::LOCATION) {
                     let location_str = location.to_str().unwrap_or("").to_string();
                     println!("重定向地址: {}", location_str);
-
-                    // 处理 Location 地址，去掉协议头和端口号
-                    if let Ok(mut parsed_url) = Url::parse(&location_str) {
-                        parsed_url.set_scheme("").ok(); // 去掉协议头
-                        //parsed_url.set_port(None).ok(); // 去掉端口
-                        url = parsed_url.to_string().trim_start_matches("//").to_string();
+                    // **修正 `Location` 头的解析**
+                    if let Some(pos) = location_str.rfind("://") {
+                        url = location_str[pos - 3..].to_string(); // 取出 `tcp://public.easytier.cn:11010`
                     } else {
-                        println!("解析 Location 地址失败，跳过！");
-                        break;
+                        url = location_str;
+                    }
+                    // **确保 URL 是绝对路径**
+                    if !url.starts_with("http://") && !url.starts_with("https://") {
+                        url = format!("http://{}", url);
                     }
                 } else {
                     println!("未发现重定向地址，停止！");
