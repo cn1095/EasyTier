@@ -298,6 +298,7 @@ impl ManualConnectorManager {
         let net_ns = data.net_ns.clone();
 
         connector.lock().await.set_ip_version(ip_version);
+        println!("🔍 连接前的 IP 版本: {:?}", connector.lock().await.get_ip_version());
 
         if data.global_ctx.config.get_flags().bind_device {
             set_bind_addr_for_peer_connector(
@@ -308,31 +309,57 @@ impl ManualConnectorManager {
             .await;
         }
 
+        connector.lock().await.set_remote_url(newdead_url.clone());
+        println!("🔍 实际连接的 remote_url: {}", connector.lock().await.remote_url());
         data.global_ctx.issue_event(GlobalCtxEvent::Connecting(
             connector.lock().await.remote_url().clone(),
         ));
 
         let _g = net_ns.guard();
-        tracing::info!("reconnect try connect... conn: {:?}", connector);
-        let tunnel = connector.lock().await.connect().await?;
-        tracing::info!("reconnect get tunnel succ: {:?}", tunnel);
-        // 连接成功，获取实际远程地址
-        let actual_remote_url = tunnel.info().unwrap().remote_addr.unwrap().to_string();
-        // 如果 `dead_url` 变了，警告并继续执行
-        if newdead_url != actual_remote_url {
-            tracing::warn!(
-                "⚠️ 服务器地址改变，原始连接地址: {}, 实际远程地址: {}",
-                dead_url, actual_remote_url
-            );
+        tracing::info!("🚀 开始连接: {:?}", connector);
+        // ✅ 连接并检查 `tunnel.info()`
+    let tunnel = match connector.lock().await.connect().await {
+        Ok(tunnel) => tunnel,
+        Err(e) => {
+            tracing::error!("❌ 连接失败: {:?}", e);
+            return Err(e);
         }
-        let (peer_id, conn_id) = data.peer_manager.add_client_tunnel(tunnel).await?;
-        tracing::info!("✅ reconnect succ: {} {} {}", peer_id, conn_id, actual_remote_url);
-        Ok(ReconnResult {
-            newdead_url,
-            peer_id,
-            conn_id,
-        })
+    };
+    tracing::info!("✅ 连接成功: {:?}", tunnel);
+
+    // ✅ 解析远程地址
+    let actual_remote_url = match tunnel.info() {
+        Some(info) => match info.remote_addr {
+            Some(addr) => addr.to_string(),
+            None => {
+                tracing::error!("❌ 连接成功但 remote_addr 为空！");
+                return Err(Error::AnyhowError(anyhow!("remote_addr is None")));
+            }
+        },
+        None => {
+            tracing::error!("❌ 连接成功但 tunnel.info() 为空！");
+            return Err(Error::AnyhowError(anyhow!("tunnel.info() is None")));
+        }
+    };
+
+    // ✅ 如果 `newdead_url` 变了，警告
+    if newdead_url != actual_remote_url {
+        tracing::warn!(
+            "⚠️ 服务器地址改变，原始连接地址: {}, 实际远程地址: {}",
+            newdead_url, actual_remote_url
+        );
     }
+
+    // ✅ 注册 Tunnel
+    let (peer_id, conn_id) = data.peer_manager.add_client_tunnel(tunnel).await?;
+    tracing::info!("✅ 重连成功: {} {} {}", peer_id, conn_id, actual_remote_url);
+
+    Ok(ReconnResult {
+        newdead_url,
+        peer_id,
+        conn_id,
+    })
+}
 
     async fn fetch_redirect_url(original_url: &str) -> Option<String> {
     let client = Client::builder()
