@@ -339,6 +339,11 @@ impl ManualConnectorManager {
         .ok()?; // 忽略构建失败的情况
 
     let mut url = original_url.to_string();
+    // **去掉 `://` 及其前面的协议部分**
+    if let Some(pos) = url.find("://") {
+        url = url[pos + 3..].to_string();
+        println!("去掉协议后的 URL: {}", url);
+    }
     let mut redirect_count = 0;
 
     while redirect_count < 3 {
