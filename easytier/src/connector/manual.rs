@@ -344,6 +344,10 @@ impl ManualConnectorManager {
         url = url[pos + 3..].to_string();
         println!("去掉协议后的 URL: {}", url);
     }
+    // **确保 URL 是绝对路径**
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        url = format!("http://{}", url);
+    }
     let mut redirect_count = 0;
 
     while redirect_count < 3 {
