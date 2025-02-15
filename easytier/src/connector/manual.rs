@@ -353,25 +353,6 @@ impl ManualConnectorManager {
 
                     // 处理 Location 地址，去掉协议头和端口号
                     if let Ok(mut parsed_url) = Url::parse(&location_str) {
-                        let location_lower = location_str.to_lowercase(); // 统一转换为小写，防止大小写问题
-                        // 如果 Location 地址中包含特殊协议，则直接返回
-                        if location_lower.contains("tcp://")
-                            || location_lower.contains("udp://")
-                            || location_lower.contains("ws://")
-                            || location_lower.contains("wss://")
-                            || location_lower.contains("ring://")
-                            || location_lower.contains("quic://")
-                            || location_lower.contains("wg://")
-                            {
-                                println!("检测到最终地址，直接返回: {}", location_str);
-
-                                // 只去掉 http:// 和 https://
-                                return Some(
-                                    location_str
-                                    .replacen("http://", "", 1)
-                                    .replacen("https://", "", 1),
-                                );
-                        }
                         parsed_url.set_scheme("").ok(); // 去掉协议头
                         //parsed_url.set_port(None).ok(); // 去掉端口
                         url = parsed_url.to_string().trim_start_matches("//").to_string();
@@ -417,7 +398,7 @@ impl ManualConnectorManager {
         let mut newdead_url = dead_url.clone();
         // 检查 dead_url 是否为 http 协议
     if let Ok(parsed_url) = Url::parse(&dead_url) {
-        if parsed_url.scheme() == "http"  {
+        if parsed_url.port() == Some(80) {
             if let Some(resolved_url) = Self::fetch_redirect_url(&dead_url).await {
                 println!("最终重定向地址: {}", resolved_url);
                 newdead_url = resolved_url;
