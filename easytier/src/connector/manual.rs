@@ -314,9 +314,7 @@ impl ManualConnectorManager {
     let remote_url = connector.lock().await.remote_url().clone();
     println!("🔍 实际连接的 remote_url: {}", remote_url);
 
-    if remote_url.is_empty() {
-        println!("⚠️ remote_url 为空，可能导致连接失败！");
-    }
+   
 
     data.global_ctx.issue_event(GlobalCtxEvent::Connecting(remote_url.clone()));
     println!("📡 连接事件已发送: {}", remote_url);
