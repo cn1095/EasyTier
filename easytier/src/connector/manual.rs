@@ -316,14 +316,17 @@ impl ManualConnectorManager {
         tracing::info!("reconnect try connect... conn: {:?}", connector);
         let tunnel = connector.lock().await.connect().await?;
         tracing::info!("reconnect get tunnel succ: {:?}", tunnel);
-        assert_eq!(
-            dead_url,
-            tunnel.info().unwrap().remote_addr.unwrap().to_string(),
-            "info: {:?}",
-            tunnel.info()
-        );
+        // 连接成功，获取实际远程地址
+        let actual_remote_url = tunnel.info().unwrap().remote_addr.unwrap().to_string();
+        // 如果 `dead_url` 变了，警告并继续执行
+        if dead_url != actual_remote_url {
+            tracing::warn!(
+                "⚠️ 服务器地址改变，原始连接地址: {}, 实际远程地址: {}",
+                dead_url, actual_remote_url
+            );
+        }
         let (peer_id, conn_id) = data.peer_manager.add_client_tunnel(tunnel).await?;
-        tracing::info!("reconnect succ: {} {} {}", peer_id, conn_id, dead_url);
+        tracing::info!("✅ reconnect succ: {} {} {}", peer_id, conn_id, actual_remote_url);
         Ok(ReconnResult {
             dead_url,
             peer_id,
