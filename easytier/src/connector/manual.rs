@@ -290,7 +290,7 @@ impl ManualConnectorManager {
 
     async fn conn_reconnect_with_ip_version(
         data: Arc<ConnectorManagerData>,
-        dead_url: String,
+        newdead_url: String,
         connector: MutexConnector,
         ip_version: IpVersion,
     ) -> Result<ReconnResult, Error> {
@@ -319,7 +319,7 @@ impl ManualConnectorManager {
         // 连接成功，获取实际远程地址
         let actual_remote_url = tunnel.info().unwrap().remote_addr.unwrap().to_string();
         // 如果 `dead_url` 变了，警告并继续执行
-        if dead_url != actual_remote_url {
+        if newdead_url != actual_remote_url {
             tracing::warn!(
                 "⚠️ 服务器地址改变，原始连接地址: {}, 实际远程地址: {}",
                 dead_url, actual_remote_url
@@ -328,7 +328,7 @@ impl ManualConnectorManager {
         let (peer_id, conn_id) = data.peer_manager.add_client_tunnel(tunnel).await?;
         tracing::info!("✅ reconnect succ: {} {} {}", peer_id, conn_id, actual_remote_url);
         Ok(ReconnResult {
-            dead_url,
+            newdead_url,
             peer_id,
             conn_id,
         })
