@@ -307,11 +307,21 @@ impl ManualConnectorManager {
         )
         .await;
     }
-    let remote_url = Url::parse(&dead_url).ok();
-    println!("实际连接的服务器: {}", dead_url);
+   use url::Url;
 
-    data.global_ctx.issue_event(GlobalCtxEvent::Connecting(remote_url.clone()));
-    println!("连接事件已发送: {}", dead_url);
+let remote_url = match Url::parse(&dead_url) {
+    Ok(url) => url, 
+    Err(_) => {
+        println!("⚠️ dead_url 无法转换为 Url: {}", dead_url);
+        return Err(Error::AnyhowError(anyhow::anyhow!("Invalid URL: {}", dead_url)));
+    }
+};
+
+println!("🔍 实际连接的服务器: {}", remote_url);
+
+data.global_ctx.issue_event(GlobalCtxEvent::Connecting(remote_url.clone()));
+println!("📡 连接事件已发送: {}", remote_url);
+
 
     let _g = net_ns.guard();
     println!("尝试连接... conn: {:?}", connector);
@@ -357,7 +367,6 @@ impl ManualConnectorManager {
     // **去掉 `://` 及其前面的协议部分**
     if let Some(pos) = url.find("://") {
         url = url[pos + 3..].to_string();
-        println!("去掉协议后的 URL: {}", url);
     }
     // **确保 URL 是绝对路径**
     if !url.starts_with("http://") && !url.starts_with("https://") {
@@ -366,7 +375,7 @@ impl ManualConnectorManager {
     let mut redirect_count = 0;
 
     while redirect_count < 3 {
-        println!("请求地址: {}", url);
+        println!("开始获取重定向地址: {}", url);
         
         let response = timeout(Duration::from_secs(5), client.get(&url).send()).await;
         match response {
@@ -424,23 +433,21 @@ impl ManualConnectorManager {
     if let Ok(parsed_url) = Url::parse(&dead_url) {
         if dead_url.ends_with('/') {
             if let Some(resolved_url) = Self::fetch_redirect_url(&dead_url).await {
-                println!("最终重定向地址: {}", resolved_url);
+                println!("最终获得的重定向地址: {}", resolved_url);
                 newdead_url = resolved_url;
             }
         }
     }
-
-    println!("最终使用的 newdead_url: {}", newdead_url);
         let mut ip_versions = vec![];
         let u = url::Url::parse(&newdead_url)
             .with_context(|| format!("failed to parse connector url {:?}", newdead_url))?;
-        println!("解析出的 URL: {:?}", u);
+            println!("解析出的服务器: {:?}", u);
         if u.scheme() == "ring" {
             ip_versions.push(IpVersion::Both);
             println!("URL 使用 ring 协议，选择 IpVersion::Both");
         } else {
             let addrs = u.socket_addrs(|| Some(1000))?;
-            println!("解析出的 IP 地址列表: {:?}", addrs);
+            println!("解析出的 IP 地址: {:?}", addrs);
             tracing::info!(?addrs, ?dead_url, "get ip from url done");
             let mut has_ipv4 = false;
             let mut has_ipv6 = false;
@@ -449,13 +456,11 @@ impl ManualConnectorManager {
                 if addr.is_ipv4() {
                     if !has_ipv4 {
                         ip_versions.insert(0, IpVersion::V4);
-                        println!("检测到 IPv4 地址: {:?}, 插入 IpVersion::V4", addr);
                     }
                     has_ipv4 = true;
                 } else if addr.is_ipv6() {
                     if !has_ipv6 {
                         ip_versions.push(IpVersion::V6);
-                        println!("检测到 IPv6 地址: {:?}, 插入 IpVersion::V6", addr);
                     }
                     has_ipv6 = true;
                 }
@@ -466,7 +471,7 @@ impl ManualConnectorManager {
             "cannot get ip from url"
         )));
         for ip_version in ip_versions {
-            println!("尝试使用 IP 版本 {:?} 进行重连", ip_version);
+            println!("尝试使用 IP{:?} 地址进行重连", ip_version);
             let ret = timeout(
                 std::time::Duration::from_secs(3),
                 Self::conn_reconnect_with_ip_version(
