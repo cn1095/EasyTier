@@ -289,54 +289,62 @@ impl ManualConnectorManager {
     }
 
     async fn conn_reconnect_with_ip_version(
-        data: Arc<ConnectorManagerData>,
-        newdead_url: String,
-        connector: MutexConnector,
-        ip_version: IpVersion,
-    ) -> Result<ReconnResult, Error> {
-        let ip_collector = data.global_ctx.get_ip_collector();
-        let net_ns = data.net_ns.clone();
+    data: Arc<ConnectorManagerData>,
+    dead_url: String,
+    connector: MutexConnector,
+    ip_version: IpVersion,
+) -> Result<ReconnResult, Error> {
+    let ip_collector = data.global_ctx.get_ip_collector();
+    let net_ns = data.net_ns.clone();
 
-        connector.lock().await.set_ip_version(ip_version);
-        println!("🔍 连接前的 IP 版本: {:?}", connector.lock().await.get_ip_version());
+    connector.lock().await.set_ip_version(ip_version);
 
-        if data.global_ctx.config.get_flags().bind_device {
-            set_bind_addr_for_peer_connector(
-                connector.lock().await.as_mut(),
-                ip_version == IpVersion::V4,
-                &ip_collector,
-            )
-            .await;
-        }
-
-        connector.lock().await.set_remote_url(newdead_url.clone());
-        println!("🔍 实际连接的 remote_url: {}", connector.lock().await.remote_url());
-        data.global_ctx.issue_event(GlobalCtxEvent::Connecting(
-            connector.lock().await.remote_url().clone(),
-        ));
-
-        let _g = net_ns.guard();
-        tracing::info!("🚀 开始连接: {:?}", connector);
-        tracing::info!("reconnect try connect... conn: {:?}", connector);
-        let tunnel = connector.lock().await.connect().await?;
-        tracing::info!("reconnect get tunnel succ: {:?}", tunnel);
-        // 连接成功，获取实际远程地址
-        let actual_remote_url = tunnel.info().unwrap().remote_addr.unwrap().to_string();
-        // 如果 `dead_url` 变了，警告并继续执行
-        if newdead_url != actual_remote_url {
-            tracing::warn!(
-                "⚠️ 服务器地址改变，原始连接地址: {}, 实际远程地址: {}",
-                dead_url, actual_remote_url
-            );
-        }
-        let (peer_id, conn_id) = data.peer_manager.add_client_tunnel(tunnel).await?;
-        tracing::info!("✅ reconnect succ: {} {} {}", peer_id, conn_id, actual_remote_url);
-        Ok(ReconnResult {
-            newdead_url,
-            peer_id,
-            conn_id,
-        })
+    if data.global_ctx.config.get_flags().bind_device {
+        set_bind_addr_for_peer_connector(
+            connector.lock().await.as_mut(),
+            ip_version == IpVersion::V4,
+            &ip_collector,
+        )
+        .await;
     }
+
+    let remote_url = connector.lock().await.remote_url().clone();
+    tracing::info!("🔍 实际连接的 remote_url: {}", remote_url);
+
+    data.global_ctx.issue_event(GlobalCtxEvent::Connecting(remote_url.clone()));
+
+    let _g = net_ns.guard();
+    tracing::info!("reconnect try connect... conn: {:?}", connector);
+    let tunnel = connector.lock().await.connect().await?;
+    tracing::info!("reconnect get tunnel succ: {:?}", tunnel);
+
+    // 获取实际远程地址
+    if let Some(tunnel_info) = tunnel.info() {
+        if let Some(remote_addr) = tunnel_info.remote_addr {
+            let actual_remote_url = remote_addr.to_string();
+            if dead_url != actual_remote_url {
+                tracing::warn!(
+                    "⚠️ 服务器地址改变，原始连接地址: {}, 实际远程地址: {}",
+                    dead_url, actual_remote_url
+                );
+            }
+        } else {
+            tracing::warn!("⚠️ 无法获取 tunnel 的 remote_addr");
+        }
+    } else {
+        tracing::warn!("⚠️ 无法获取 tunnel 的信息");
+    }
+
+    let (peer_id, conn_id) = data.peer_manager.add_client_tunnel(tunnel).await?;
+    tracing::info!("✅ reconnect succ: {} {} {}", peer_id, conn_id, dead_url);
+    
+    Ok(ReconnResult {
+        dead_url,
+        peer_id,
+        conn_id,
+    })
+}
+
 
     async fn fetch_redirect_url(original_url: &str) -> Option<String> {
     let client = Client::builder()
@@ -460,7 +468,7 @@ impl ManualConnectorManager {
         for ip_version in ip_versions {
             println!("尝试使用 IP 版本 {:?} 进行重连", ip_version);
             let ret = timeout(
-                std::time::Duration::from_secs(5),
+                std::time::Duration::from_secs(3),
                 Self::conn_reconnect_with_ip_version(
                     data.clone(),
                     newdead_url.clone(),
