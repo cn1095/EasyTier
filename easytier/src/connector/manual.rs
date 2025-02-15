@@ -335,26 +335,33 @@ impl ManualConnectorManager {
         connector: MutexConnector,
     ) -> Result<ReconnResult, Error> {
         tracing::info!("reconnect: {}", dead_url);
+        println!("开始重连，dead_url: {}", dead_url);
 
         let mut ip_versions = vec![];
         let u = url::Url::parse(&dead_url)
             .with_context(|| format!("failed to parse connector url {:?}", dead_url))?;
+        println!("解析出的 URL: {:?}", u);
         if u.scheme() == "ring" {
             ip_versions.push(IpVersion::Both);
+            println!("URL 使用 ring 协议，选择 IpVersion::Both");
         } else {
             let addrs = u.socket_addrs(|| Some(1000))?;
+            println!("解析出的 IP 地址列表: {:?}", addrs);
             tracing::info!(?addrs, ?dead_url, "get ip from url done");
             let mut has_ipv4 = false;
             let mut has_ipv6 = false;
             for addr in addrs {
+                println!("检查地址: {:?}", addr);
                 if addr.is_ipv4() {
                     if !has_ipv4 {
                         ip_versions.insert(0, IpVersion::V4);
+                        println!("检测到 IPv4 地址: {:?}, 插入 IpVersion::V4", addr);
                     }
                     has_ipv4 = true;
                 } else if addr.is_ipv6() {
                     if !has_ipv6 {
                         ip_versions.push(IpVersion::V6);
+                        println!("检测到 IPv6 地址: {:?}, 插入 IpVersion::V6", addr);
                     }
                     has_ipv6 = true;
                 }
@@ -365,6 +372,7 @@ impl ManualConnectorManager {
             "cannot get ip from url"
         )));
         for ip_version in ip_versions {
+            println!("尝试使用 IP 版本 {:?} 进行重连", ip_version);
             let ret = timeout(
                 std::time::Duration::from_secs(1),
                 Self::conn_reconnect_with_ip_version(
@@ -375,16 +383,20 @@ impl ManualConnectorManager {
                 ),
             )
             .await;
+            println!("重连结果: {:?}", ret);
             tracing::info!("reconnect: {} done, ret: {:?}", dead_url, ret);
 
             if ret.is_ok() && ret.as_ref().unwrap().is_ok() {
                 reconn_ret = ret.unwrap();
+                println!("重连成功: {:?}", reconn_ret);
                 break;
             } else {
                 if ret.is_err() {
                     reconn_ret = Err(ret.unwrap_err().into());
+                    println!("重连超时: {:?}", reconn_ret);
                 } else if ret.as_ref().unwrap().is_err() {
                     reconn_ret = Err(ret.unwrap().unwrap_err());
+                    println!("重连失败: {:?}", reconn_ret);
                 }
                 data.global_ctx.issue_event(GlobalCtxEvent::ConnectError(
                     dead_url.clone(),
@@ -393,7 +405,7 @@ impl ManualConnectorManager {
                 ));
             }
         }
-
+         println!("最终返回的重连结果: {:?}", reconn_ret);
         reconn_ret
     }
 }
