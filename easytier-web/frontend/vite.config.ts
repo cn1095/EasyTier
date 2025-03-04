@@ -3,12 +3,18 @@ import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
     plugins: [vue()],
+    mode: 'production',  // 确保是生产模式
     build: {
-        outDir: 'dist',
+        minify: 'terser', // 使用更强的代码压缩工具
+        terserOptions: {
+            compress: {
+                drop_console: true,  // 移除 console.log
+                drop_debugger: true  // 移除 debugger
+            }
+        },
         rollupOptions: {
             output: {
-                inlineDynamicImports: true, // 让所有 JS 代码都内联
-                manualChunks: undefined,   // 禁用代码分割
+                manualChunks: undefined,  // 避免分割代码
             }
         }
     }
