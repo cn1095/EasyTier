@@ -1,28 +1,19 @@
 <script setup lang="ts">
-import { NetworkTypes } from 'easytier-frontend-lib';
 import { ref } from 'vue';
-import { Api } from 'easytier-frontend-lib'
+import { NetworkTypes } from 'easytier-frontend-lib';
+import { Api } from 'easytier-frontend-lib';
 
-const defaultApiHost = ''
+const defaultApiHost = '';
 const api = new Api.ApiClient(defaultApiHost);
 
 const newNetworkConfig = ref<NetworkTypes.NetworkConfig>(NetworkTypes.DEFAULT_NETWORK_CONFIG());
-const toml_config = ref<string>("点击 运行网络 以生成 TOML 配置");
+const toml_config = ref<string>('点击 运行网络 以生成 TOML 配置');
 
 const generateConfig = (config: NetworkTypes.NetworkConfig) => {
-    api.generate_config({
-        config: config
-    }).then((res) => {
-        if (res.error) {
-            toml_config.value = res.error;
-        } else if (res.toml_config) {
-            toml_config.value = res.toml_config;
-        } else {
-            toml_config.value = "API服务器返回了一个意外的响应";
-        }
+    api.generate_config({ config }).then((res) => {
+        toml_config.value = res.error || res.toml_config || 'API 服务器返回了一个意外的响应';
     });
 };
-
 </script>
 
 <template>
