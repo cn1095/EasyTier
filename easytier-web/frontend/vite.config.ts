@@ -6,7 +6,10 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         rollupOptions: {
-            input: 'index.html'  // 让 Vite 以 index.html 为入口
+            output: {
+                inlineDynamicImports: true, // 让所有 JS 代码都内联
+                manualChunks: undefined,   // 禁用代码分割
+            }
         }
     }
 });
