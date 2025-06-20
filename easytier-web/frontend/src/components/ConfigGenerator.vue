@@ -86,7 +86,7 @@ const parseConfig = async () => {
                     placeholder="点击 '运行网络' 生成 TOML 配置，或在此处粘贴您的 TOML 配置以进行解析"
                 ></Textarea>
                 <div class="mt-3 flex justify-center">
-                  <Button label="Parse Config" icon="pi pi-arrow-left" icon-pos="left" @click="parseConfig" />
+                  <Button label="解析配置" icon="pi pi-arrow-left" icon-pos="left" @click="parseConfig" />
                 </div>
             </div>
         </div>
