@@ -3,14 +3,7 @@ interface ApiHost {
     usedAt: number;
 }
 
-let apiMeta: {
-    api_host: string;
-} | undefined = (window as any).apiMeta;
-
-// remove trailing slashes from the URL
-const cleanUrl = (url: string) => url.replace(/\/+$/, '');
-
-const defaultApiHost = cleanUrl('https://config-server.easytier.cn');
+const defaultApiHost = 'https://config-server.easytier.cn';
 
 const isValidHttpUrl = (s: string): boolean => {
     let url;
