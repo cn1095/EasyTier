@@ -31,14 +31,14 @@ const generateConfig = (config: NetworkTypes.NetworkConfig) => {
         config: config
     }).then((res) => {
         if (res.error) {
-            errorMessage.value = "Generation failed: " + res.error;
+            errorMessage.value = "生成失败: " + res.error;
         } else if (res.toml_config) {
             toml_config.value = res.toml_config;
         } else {
-            errorMessage.value = "Api server returned an unexpected response";
+            errorMessage.value = "Api 服务器返回了意外的响应";
         }
     }).catch(err => {
-        errorMessage.value = "Generate request failed: " + (err instanceof Error ? err.message : String(err));
+        errorMessage.value = "生成请求失败: " + (err instanceof Error ? err.message : String(err));
     });
 };
 
@@ -50,14 +50,14 @@ const parseConfig = async () => {
     });
     
     if (res.error) {
-      errorMessage.value = "Parse failed: " + res.error;
+      errorMessage.value = "解析失败: " + res.error;
     } else if (res.config) {
       newNetworkConfig.value = res.config;
     } else {
-      errorMessage.value = "API returned an unexpected response";
+      errorMessage.value = "API 返回了意外的响应";
     }
   } catch (e) {
-    errorMessage.value = "Parse request failed: " + (e instanceof Error ? e.message : String(e));
+    errorMessage.value = "解析请求失败: " + (e instanceof Error ? e.message : String(e));
   }
 };
 
@@ -83,7 +83,7 @@ const parseConfig = async () => {
                     v-model="toml_config" 
                     spellcheck="false"
                     class="w-full flex-grow p-2 bg-gray-100 whitespace-pre-wrap font-mono border-none focus:outline-none resize-none" 
-                    placeholder="Press 'Run Network' to generate TOML configuration, or paste your TOML configuration here to parse it"
+                    placeholder="点击 '运行网络' 生成 TOML 配置，或在此处粘贴您的 TOML 配置以进行解析"
                 ></Textarea>
                 <div class="mt-3 flex justify-center">
                   <Button label="Parse Config" icon="pi pi-arrow-left" icon-pos="left" @click="parseConfig" />
