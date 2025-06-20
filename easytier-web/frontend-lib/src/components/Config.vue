@@ -265,7 +265,7 @@ const bool_flags: BoolFlag[] = [
 
               <div class="flex flex-row gap-x-9 flex-wrap ">
                 <div class="flex flex-col gap-2 grow">
-                  <label for="username">VPN Portal</label>
+                  <label for="username">WG VPN门户地址</label>
                   <ToggleButton v-model="curNetwork.enable_vpn_portal" on-icon="pi pi-check" off-icon="pi pi-times"
                     :on-label="t('off_text')" :off-label="t('on_text')" class="w-48" />
                   <div v-if="curNetwork.enable_vpn_portal" class="items-center flex flex-row gap-x-4">
