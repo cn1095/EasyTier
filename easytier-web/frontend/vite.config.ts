@@ -3,7 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { viteSingleFile } from "vite-plugin-singlefile"
 
 const WEB_BASE_URL = process.env.WEB_BASE_URL || '';
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:11211';
+const API_BASE_URL = process.env.API_BASE_URL || 'https://config-server.easytier.cn';
 
 // https://vite.dev/config/
 export default defineConfig({
