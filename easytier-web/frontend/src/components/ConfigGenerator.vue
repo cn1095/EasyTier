@@ -69,7 +69,7 @@ const parseConfig = async () => {
             <div class="sm:w-full md:w-1/2 p-4">
                 <div class="flex flex-col">
                   <div class="w-11/12 self-center ">
-                    <label>ApiHost</label>
+                    <label>ApiHost地址</label>
                     <AutoComplete id="api-host" v-model="apiHost" dropdown :suggestions="apiHostSuggestions"
                                   @complete="apiHostSearch" class="w-full" />
                     <Divider />
