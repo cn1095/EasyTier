@@ -10,7 +10,7 @@ let apiMeta: {
 // remove trailing slashes from the URL
 const cleanUrl = (url: string) => url.replace(/\/+$/, '');
 
-const defaultApiHost = 'https://config-server.easytier.cn';
+const defaultApiHost = cleanUrl('https://config-server.easytier.cn');
 
 const isValidHttpUrl = (s: string): boolean => {
     let url;
